@@ -5,6 +5,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { getDb } from "../src/db/client";
+import { useAppStore } from "../src/store/appStore";
 import { useTheme } from "../src/theme";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -12,9 +13,11 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 export default function RootLayout() {
   const [ready, setReady] = useState(false);
   const theme = useTheme();
+  const init = useAppStore((state) => state.init);
 
   useEffect(() => {
     getDb()
+      .then(() => init())
       .then(() => setReady(true))
       .finally(() => SplashScreen.hideAsync().catch(() => {}));
   }, []);
@@ -24,7 +27,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <StatusBar style={theme.scheme === "dark" ? "light" : "dark"} />
+        <StatusBar style="dark" />
         <Stack
           screenOptions={{
             headerShown: false,

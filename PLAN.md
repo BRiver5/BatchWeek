@@ -1,103 +1,85 @@
-# BatchWeek — План реализации
+# BatchWeek — plan
 
-> «{{TAGLINE}}»
-> {{ОДНО ПРЕДЛОЖЕНИЕ О ТОМ, ЧТО ДЕЛАЕТ ПРИЛОЖЕНИЕ}}
+Weekly meal-prep planner. You keep a small shelf of recipes you actually cook;
+the app composes the week for you so that ingredients overlap, perishable
+things get used while they are still good, weeknights stay short, and some
+slots are filled by deliberate batch cooking instead of another cook-up. The
+shopping list falls out of the plan, rounded to real pack sizes and split into
+shopping trips timed to what spoils first.
 
----
+Everything is local (`expo-sqlite`). No account, no network, no analytics.
 
-## 0. Архитектурные решения
+## Screens (5)
 
-### 0.1 Полностью локальное приложение
+1. **Week** (`app/index.tsx`) — the planner. Layout archetype: **Sidebar
+   Categories** — a narrow vertical day rail on the left (days of the week,
+   with state dots and a spring-driven selection indicator), the selected
+   day's slots on the right. Hero at the top of the content column is the
+   signature widget `ReuseWeave`. Primary action is the "Build week" pill in
+   the hero card, not a floating FAB.
+2. **Recipes** (`app/recipes.tsx`) — the recipe shelf; add/edit through an
+   explicit modal with one-tap ingredient presets.
+3. **Shopping** (`app/shop.tsx`) — the derived list: one or two trips, pack
+   rounding with a visible surplus, "check at home" staples.
+4. **Stats** (`app/stats.tsx`) — six sections (see below).
+5. **Settings** (`app/settings.tsx`) — week shape, time budgets, batch rules,
+   trips, local data reset.
 
-Бэкенда нет и не нужен. Источник правды — `expo-sqlite` на устройстве. Никакой
-регистрации, никакого обязательного интернета. Единственные системные
-возможности за пределами локального экрана — **локальные уведомления** и
-**вибрация** (haptics), и то только если это реально нужно этому приложению.
+## The engine (`src/lib/*.ts`, pure functions, 47 unit tests)
 
-### 0.2 Разрешения — по умолчанию минимум
+- `units.ts` — mass/volume/count families, canonical units, conversion only
+  inside a family (no fake density maths).
+- `packing.ts` — **exact DP** for pack-size rounding: minimise surplus first,
+  then pack count. Greedy genuinely loses here (need 600 with 500/400 packs:
+  greedy buys 900, DP buys 800), so greedy is only the fallback for
+  unrealistically large grids.
+- `planner.ts` — the week composer. Weighted cost function over: distinct
+  ingredients bought, pack surplus, spoilage (days between first and last use
+  vs shelf life), effort over the day's budget, recipe repeats, same lead
+  ingredient on consecutive meals, uncovered slots. Solved by seeded randomised
+  greedy construction (marginal cost per slot) + steepest-descent local search
+  over two neighbourhoods (replace a slot, swap two slots) + multi-restart.
+  Deterministic given a seed; "Rebuild" bumps the seed for a genuinely
+  different week.
+- `shopping.ts` — aggregation, pack rounding, and **exhaustive** trip-day
+  selection (7 options for one trip, 28 pairs for two) minimising total
+  freshness loss. No heuristic: the search space is small enough for the
+  honest optimum.
+- `planStats.ts` — Wilson intervals, and the honest headline: a scan over
+  every possible effort cut point looking for one where the two sides'
+  confidence intervals do **not** overlap. Reports `found` /
+  `insufficientData` / `notSeparated` — never the prettiest number it can find.
 
-`app.json` уже блокирует чувствительные разрешения (`SCHEDULE_EXACT_ALARM`,
-`READ_MEDIA_*`, геолокация, камера, контакты, SMS и т.д. — см.
-`android.blockedPermissions`). Если этому конкретному приложению правда нужно
-одно из заблокированных — убрать из списка и **обязательно записать здесь**,
-зачем:
+## Data model
 
-| Разрешение | Зачем (или "не используется") |
-|---|---|
-| `POST_NOTIFICATIONS` | ... |
-| `VIBRATE` | ... |
+`recipes` + `recipe_lines` (composition per base serving) · `ingredients`
+(shelf life, pack sizes, category, staple flag — a property of the product,
+shared by every recipe) · `weeks` + `slots` (plan and per-slot status) ·
+`shopping_checks` · `settings`.
 
-### 0.3 Никаких точных будильников
+## Signature widget
 
-`expo-notifications` с `DAILY` / `TIME_INTERVAL` триггерами. Не `SCHEDULE_EXACT_ALARM`.
+`ReuseWeave` — seven day rows, one vertical thread per ingredient used on more
+than one day, a knot at each use. Threads draw in, knots pop after. It shows
+exactly what the optimiser trades off: a dense weave means a short shopping
+list, long threads mean something has to survive until the last knot.
 
----
+Secondary: `PackStack` on the shopping list — discrete blocks, one per pack,
+filled left to right, the partial tail being the surplus the DP minimises.
 
-## 1. Стек
+## Stats sections
 
-- Expo SDK 54 (TypeScript), expo-router
-- `react-native-reanimated`, `react-native-svg` — если приложению нужны графики/анимации
-- `expo-sqlite` — локальная БД (единственное хранилище)
-- `expo-notifications`, `expo-haptics` — по необходимости конкретного приложения
-- Zustand — только если состояние реально не помещается в локальные `useState`/БД
+1. Follow-through ring + weeks planned + minutes saved by leftovers.
+2. Last 8 weeks stacked: cooked / leftovers / skipped.
+3. Active minutes by weekday (bars).
+4. Ingredient reuse this week (donut: used once / twice / 3+).
+5. 12-week cooking heatmap.
+6. "Where the plan breaks" — the Wilson-gated effort threshold plus per-recipe
+   follow-through.
 
----
+## Permissions
 
-## 2. Дизайн-система
-
-Палитра **обязана отличаться** от других приложений в портфеле — минимум
-другой accent-цвет, лучше другая общая схема (не просто перекраска). Заполнить
-после выбора палитры и прогона `npm run icons`:
-
-```
-background   #......
-surface      #......
-accent       #......
-ink          #......
-```
-
-- Скругления, тени, типографика — см. `src/theme/`
-- Решение по анимациям (timing или spring — выбрать одно на всё приложение): ...
-
----
-
-## 3. Модель данных
-
-| Таблица | Поля |
-|---|---|
-| ... | ... |
-
-Правило: никаких сгенерированных/демо-записей в статистике или списках.
-Пустое состояние показывает `EmptyState`, а не заглушку.
-
----
-
-## 4. Экраны
-
-1. ...
-2. ...
-
-(4-6 экранов. Если тема просится на больше — это v2, не v1.)
-
----
-
-## 5. Порядок работ
-
-1. Скопировать `app-template`, прогнать `tools/rename-project.js`.
-2. Определить палитру (раздел 2), прогнать `npm run icons`.
-3. Схема БД и миграции под реальные сущности (заменить `items.example.ts`).
-4. Экраны и навигация.
-5. Уведомления/haptics — только если нужны конкретно этому приложению.
-6. `npm run verify` — tsc, check-rules, expo export.
-7. Прогон на эмуляторе, скриншоты ключевых экранов.
-
----
-
-## 6. Критерии готовности
-
-- [ ] `npm run verify` — все шаги зелёные
-- [ ] Ни одного оставшегося `__PLACEHOLDER__`
-- [ ] `items.example.ts` заменён на реальную модель данных
-- [ ] Все включённые разрешения обоснованы в разделе 0.2
-- [ ] Пустые состояния везде, где может не быть данных
-- [ ] Приложение запущено на эмуляторе, экраны провизуально проверены
+Nothing unlocked. `expo-notifications` is removed entirely (a planner that
+nags was not worth a notifications permission); the only system capability is
+vibration via `expo-haptics`. Camera, audio, location and media stay blocked in
+`app.json`.

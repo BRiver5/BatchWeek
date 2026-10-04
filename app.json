@@ -6,12 +6,12 @@
     "scheme": "batchweek",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FFFFFF"
+      "backgroundColor": "#F4F1F2"
     },
     "ios": {
       "supportsTablet": true,
@@ -25,7 +25,7 @@
         "foregroundImage": "./assets/adaptive-icon-foreground.png"
       },
       "predictiveBackGestureEnabled": false,
-      "_comment_blockedPermissions": "Приложение по умолчанию локальное: только уведомления и вибрация. Если конкретному приложению реально нужно что-то из списка ниже — удали строку и напиши рядом, зачем (см. docs/PLAN.template.md, раздел 'Разрешения').",
+      "_comment_blockedPermissions": "Приложение полностью локальное: ни одного чувствительного разрешения не разблокировано. Уведомления не используются (expo-notifications удалён), остаётся только вибрация (VIBRATE), которую даёт expo-haptics.",
       "blockedPermissions": [
         "android.permission.SCHEDULE_EXACT_ALARM",
         "android.permission.USE_EXACT_ALARM",
@@ -51,14 +51,7 @@
     "plugins": [
       "expo-router",
       "expo-sqlite",
-      "expo-font",
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/notification-icon.png",
-          "color": "#000000"
-        }
-      ]
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true

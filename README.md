@@ -1,43 +1,40 @@
 # BatchWeek
 
-**{{TAGLINE}}**
+Offline weekly meal-prep planner for Android (Expo / React Native).
 
-{{Один абзац о том, что делает приложение и для кого.}}
+Keep a shelf of recipes you actually cook. BatchWeek composes the week so that
+ingredients overlap between dishes, perishable things are used while they are
+still good, weeknights stay inside your time budget, and some meals are
+covered by deliberate batch cooking. The shopping list is derived from the
+plan, rounded to real pack sizes, and split into trips timed to what spoils
+first.
 
-## Особенности
+No account, no backend, no analytics — everything lives in a local SQLite
+database on the device.
 
-- ...
-
-## Стек
-
-- Expo SDK 54 + expo-router, TypeScript
-- `expo-sqlite` — вся persistence локально на устройстве, интернет не нужен
-- `expo-notifications` / `expo-haptics` — если приложение их использует
-
-## Запуск
+## Running
 
 ```bash
 npm install
-npx expo start
+npx expo start      # then open in Expo Go
+npm run verify      # tsc + unit tests + project rules + offline bundle export
 ```
 
-`a` — Android, `i` — iOS, либо QR-код через Expo Go.
-
-## Структура проекта
+## Layout
 
 ```
-app/            expo-router экраны
-src/
-  theme/        палитра, типографика, отступы, анимации
-  db/           expo-sqlite схема + миграции
-  data/         доступ к данным (замени items.example.ts)
-  services/     notifications, haptics
-  components/   переиспользуемые UI-примитивы
-  lib/          id, даты
-tools/          генератор иконок, проверки, rename-скрипт
+app/            expo-router screens: index (week), recipes, shop, stats, settings
+src/lib/        the engine — units, pack DP, week composer, shopping, stats (unit tested)
+src/components/ ReuseWeave (signature widget), DayRail, PackStack, StackedBars, modals
+src/data/       SQLite repository, settings, ingredient presets
+src/store/      zustand app store
+src/theme/      palette, typography, spacing, motion
 ```
 
-## Данные
+## Notes
 
-Все данные хранятся локально на устройстве. Регистрации нет, интернет не
-требуется для работы приложения.
+- Dinner-only by default; lunches can be switched on in Settings.
+- "Rebuild week" re-runs the optimiser with a new seed — same data, genuinely
+  different arrangement.
+- Stats only state a conclusion when the numbers support it; otherwise they
+  say so.

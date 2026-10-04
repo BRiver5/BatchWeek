@@ -14,9 +14,9 @@ const fs = require("fs");
 const path = require("path");
 const zlib = require("zlib");
 
-const ACCENT = { r: 0x2f, g: 0x5d, b: 0xff };
-const SECONDARY = { r: 0x1a, g: 0x1a, b: 0x1a };
-const BACKGROUND = { r: 0xff, g: 0xff, b: 0xff };
+const ACCENT = { r: 0xcd, g: 0x1d, b: 0x35 };
+const SECONDARY = { r: 0x23, g: 0x1a, b: 0x1c };
+const BACKGROUND = { r: 0xf4, g: 0xf1, b: 0xf2 };
 
 const ASSETS_DIR = path.join(__dirname, "..", "assets");
 
@@ -138,5 +138,4 @@ write("adaptive-icon-foreground.png", 1024, drawMark(1024, { transparentBg: true
 write("adaptive-icon-background.png", 1024, solidFill(1024, BACKGROUND));
 write("splash-icon.png", 1024, drawMark(1024, { transparentBg: true }));
 write("favicon.png", 196, drawMark(196));
-write("notification-icon.png", 96, drawMark(96, { singleColorWhite: true }));
 console.log("Готово. Перед публикацией замени на собственную иллюстрацию/лого.");
