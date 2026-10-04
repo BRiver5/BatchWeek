@@ -5,11 +5,11 @@
     "version": "1.0.0",
     "scheme": "batchweek",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./release/creo/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./release/creo/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#F4F1F2"
     },
@@ -21,8 +21,8 @@
       "package": "com.batchweek.app",
       "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundImage": "./assets/adaptive-icon-background.png",
-        "foregroundImage": "./assets/adaptive-icon-foreground.png"
+        "foregroundImage": "./release/creo/icon.png",
+        "backgroundColor": "#F4F1F2"
       },
       "predictiveBackGestureEnabled": false,
       "_comment_blockedPermissions": "Приложение полностью локальное: ни одного чувствительного разрешения не разблокировано. Уведомления не используются (expo-notifications удалён), остаётся только вибрация (VIBRATE), которую даёт expo-haptics.",
