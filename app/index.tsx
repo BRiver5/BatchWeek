@@ -214,12 +214,14 @@ export default function WeekScreen() {
 
         {hasPlan ? (
           <View style={{ flexDirection: "row", gap: theme.spacing.sm, marginTop: theme.spacing.lg }}>
-            <StatTile label="Active cooking" hint={`${summary.cookCount} cook-ups`}>
+            {/* Число без единицы: единица живёт в подписи — "115 min" в 24pt
+                не влезает в треть экрана и TextInput обрезает его слева. */}
+            <StatTile label="Active min" hint={`${summary.cookCount} cook-ups`}>
               <AnimatedCounter
                 value={summary.activeMinutes}
                 formatter={(v) => {
                   "worklet";
-                  return `${Math.round(v)} min`;
+                  return String(Math.round(v));
                 }}
                 style={{ ...theme.typography.title, color: theme.colors.ink, padding: 0 }}
               />

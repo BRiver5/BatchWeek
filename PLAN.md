@@ -25,7 +25,7 @@ Everything is local (`expo-sqlite`). No account, no network, no analytics.
 5. **Settings** (`app/settings.tsx`) — week shape, time budgets, batch rules,
    trips, local data reset.
 
-## The engine (`src/lib/*.ts`, pure functions, 47 unit tests)
+## The engine (`src/lib/*.ts`, pure functions, 50 unit tests)
 
 - `units.ts` — mass/volume/count families, canonical units, conversion only
   inside a family (no fake density maths).
@@ -35,8 +35,11 @@ Everything is local (`expo-sqlite`). No account, no network, no analytics.
   unrealistically large grids.
 - `planner.ts` — the week composer. Weighted cost function over: distinct
   ingredients bought, pack surplus, spoilage (days between first and last use
-  vs shelf life), effort over the day's budget, recipe repeats, same lead
-  ingredient on consecutive meals, uncovered slots. Solved by seeded randomised
+  vs shelf life), effort over the day's budget, recipe repeats, monotony of
+  what actually gets eaten (leftovers included), same lead ingredient on
+  consecutive meals, uncovered slots. One cook feeds at most two extra slots.
+  The variety-vs-short-list balance is a user setting, not a constant: at the
+  "short list" end the honest optimum really is two dishes all week. Solved by seeded randomised
   greedy construction (marginal cost per slot) + steepest-descent local search
   over two neighbourhoods (replace a slot, swap two slots) + multi-restart.
   Deterministic given a seed; "Rebuild" bumps the seed for a genuinely

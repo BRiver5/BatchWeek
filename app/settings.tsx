@@ -188,6 +188,26 @@ export default function SettingsScreen() {
               onChange={(value) => updateSettings({ minRepeatGap: value })}
             />
           </Row>
+          <View style={{ paddingVertical: theme.spacing.md }}>
+            <Text style={{ ...theme.typography.body, color: theme.colors.ink }}>Variety vs short list</Text>
+            <Text style={{ ...theme.typography.caption, color: theme.colors.inkMuted, marginTop: 2 }}>
+              {settings.varietyBias <= 2
+                ? "Fewer things to buy — expect the same dish more often"
+                : settings.varietyBias >= 4
+                  ? "More different dishes — expect a longer shopping list"
+                  : "Balanced: a few cook-ups, a few leftover days"}
+            </Text>
+            <View style={{ flexDirection: "row", gap: 6, marginTop: theme.spacing.sm }}>
+              {[1, 2, 3, 4, 5].map((level) => (
+                <Chip
+                  key={level}
+                  label={level === 1 ? "Short list" : level === 5 ? "Variety" : String(level)}
+                  selected={settings.varietyBias === level}
+                  onPress={() => updateSettings({ varietyBias: level })}
+                />
+              ))}
+            </View>
+          </View>
         </>
       ),
     },

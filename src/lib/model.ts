@@ -74,7 +74,25 @@ export type PlanWeights = {
   surplus: number;
   spoil: number;
   effort: number;
+  /** Повтор рецепта ближе, чем minRepeatGap дней. */
   repeat: number;
+  /**
+   * Повтор рецепта где угодно на неделе, даже за пределами minRepeatGap.
+   * Без этого слагаемого оптимизатор вырождается: второе приготовление того
+   * же блюда не добавляет НИ ОДНОГО нового продукта, то есть по "стоимости
+   * покупок" оно бесплатно, и честный минимум — это одно и то же блюдо всю
+   * неделю. Проверено на живом прогоне: без него неделя собиралась из двух
+   * рецептов на семь ужинов.
+   */
+  sameRecipeAgain: number;
+  /**
+   * Однообразие СЪЕДЕННОГО: пара слотов недели с одним и тем же блюдом,
+   * включая остатки. Готовка впрок — смысл приложения, но без этого члена
+   * "оптимально" значит "свари два раза и ешь это семь дней". Вес живёт в
+   * настройках как ползунок Variety: это вкусовое решение пользователя, а не
+   * константа, которую автор знает лучше него.
+   */
+  eatRepeat: number;
   tagAdjacency: number;
   uncovered: number;
 };
@@ -85,6 +103,8 @@ export const DEFAULT_WEIGHTS: PlanWeights = {
   spoil: 4,
   effort: 0.6,
   repeat: 14,
+  sameRecipeAgain: 9,
+  eatRepeat: 7,
   tagAdjacency: 5,
   uncovered: 400,
 };
@@ -111,7 +131,7 @@ export const DEFAULT_CONFIG: Omit<PlanConfig, "slots"> = {
   weekendMinutes: 75,
   allowBatch: true,
   minRepeatGap: 3,
-  leftoverMaxAge: 3,
+  leftoverMaxAge: 2,
   weights: DEFAULT_WEIGHTS,
 };
 

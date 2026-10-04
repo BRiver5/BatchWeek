@@ -33,6 +33,8 @@ export type ScoreParts = {
   spoil: number;
   effort: number;
   repeat: number;
+  sameRecipeAgain: number;
+  eatRepeat: number;
   tagAdjacency: number;
   uncovered: number;
 };
@@ -165,21 +167,31 @@ export function scorePlan(
     if (slot.kind === "cook") cooks.push({ day: slot.day, recipeId: slot.recipeId });
   }
   let repeat = 0;
+  let sameRecipeAgain = 0;
   for (let i = 0; i < cooks.length; i++) {
     for (let j = i + 1; j < cooks.length; j++) {
       if (cooks[i].recipeId !== cooks[j].recipeId) continue;
+      // Квадратично по числу повторов: третий раз за неделю дороже второго.
+      sameRecipeAgain += 1;
       const gap = Math.abs(cooks[i].day - cooks[j].day);
       if (gap < config.minRepeatGap) repeat += config.minRepeatGap - gap;
     }
   }
 
-  const eaten: { ordinal: number; tag: string }[] = [];
+  const eaten: { ordinal: number; tag: string; recipeId: string }[] = [];
   for (const slot of slots) {
     if (slot.kind === "open") continue;
     eaten.push({
       ordinal: slotOrdinal(slot.day, slot.meal),
       tag: recipeById.get(slot.recipeId)?.tag ?? "",
+      recipeId: slot.recipeId,
     });
+  }
+  let eatRepeat = 0;
+  for (let i = 0; i < eaten.length; i++) {
+    for (let j = i + 1; j < eaten.length; j++) {
+      if (eaten[i].recipeId === eaten[j].recipeId) eatRepeat += 1;
+    }
   }
   eaten.sort((a, b) => a.ordinal - b.ordinal);
   let tagAdjacency = 0;
@@ -196,17 +208,36 @@ export function scorePlan(
     spoil: spoil * w.spoil,
     effort: effort * w.effort,
     repeat: repeat * w.repeat,
+    sameRecipeAgain: sameRecipeAgain * w.sameRecipeAgain,
+    eatRepeat: eatRepeat * w.eatRepeat,
     tagAdjacency: tagAdjacency * w.tagAdjacency,
     uncovered: uncovered * w.uncovered,
   };
   const total =
-    parts.ingredient + parts.surplus + parts.spoil + parts.effort + parts.repeat + parts.tagAdjacency + parts.uncovered;
+    parts.ingredient +
+    parts.surplus +
+    parts.spoil +
+    parts.effort +
+    parts.repeat +
+    parts.sameRecipeAgain +
+    parts.eatRepeat +
+    parts.tagAdjacency +
+    parts.uncovered;
   return { total, parts };
 }
 
 function emptySlots(config: PlanConfig): Slot[] {
   return config.slots.map((s) => ({ day: s.day, meal: s.meal, kind: "open" as const }));
 }
+
+/**
+ * Сколько слотов максимум может закрыть одна готовка сверх своего собственного.
+ * Это не вкусовщина, а физика: кастрюля не бесконечная, а четыре одинаковых
+ * ужина подряд — не план, а наказание. Без этого предела оптимизатор честно
+ * сходился к "сварить два раза и доедать всю неделю" (проверено на живом
+ * прогоне на эмуляторе).
+ */
+const MAX_LEFTOVERS_PER_COOK = 2;
 
 /** Остатки живут ограниченное время — и по рецепту, и по общему потолку. */
 function leftoverAgeOk(ageDays: number, recipe: Recipe, config: PlanConfig): boolean {
@@ -246,6 +277,13 @@ function candidatesFor(
     const recipe = recipeById.get(source.recipeId);
     if (!recipe) continue;
     if (!leftoverAgeOk(target.day - source.day, recipe, config)) continue;
+    let alreadyFed = 0;
+    for (const other of slots) {
+      if (other.kind === "leftover" && other.sourceDay === source.day && other.sourceMeal === source.meal) {
+        alreadyFed += 1;
+      }
+    }
+    if (alreadyFed >= MAX_LEFTOVERS_PER_COOK) continue;
     out.push({
       day: target.day,
       meal: target.meal,

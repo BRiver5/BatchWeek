@@ -31,6 +31,8 @@ import { DonutChart } from "../src/components/DonutChart";
 import { Heatmap } from "../src/components/Heatmap";
 import { Legend, StackedBars } from "../src/components/StackedBars";
 
+const HEAT_CELL = 13;
+const HEAT_GAP = 4;
 const REUSE_COLORS = [categoryColors.dairy, categoryColors.grain, categoryColors.fresh];
 
 function Section({ title, subtitle, index, children }: { title: string; subtitle?: string; index: number; children: React.ReactNode }) {
@@ -170,7 +172,7 @@ export default function StatsScreen() {
             {/* 2 — как прошли последние недели. */}
             <Section
               title="Weeks"
-              subtitle="Cooked, eaten as leftovers, or skipped"
+              subtitle="One bar per week, labelled by the day its Monday fell on"
               index={1}
             >
               {weeks.length === 0 ? (
@@ -241,11 +243,30 @@ export default function StatsScreen() {
             </Section>
 
             {/* 5 — 12 недель активности. */}
-            <Section title="Cooking activity" subtitle="Last 12 weeks, one square per day" index={4}>
+            <Section title="Cooking activity" subtitle="Last 12 weeks · days left to right, weeks top to bottom" index={4}>
+              {/* Ширина контейнера задана ровно под семь клеток: без неё
+                  flexWrap переносит строки по месту на экране, и сетка
+                  перестаёт читаться как недели (видно на живом прогоне). */}
+              <View style={{ width: 7 * (HEAT_CELL + HEAT_GAP) }}>
+                <View style={{ flexDirection: "row", gap: HEAT_GAP, marginBottom: 4 }}>
+                  {DAY_NAMES.map((name) => (
+                    <Text
+                      key={name}
+                      style={{
+                        width: HEAT_CELL,
+                        fontSize: 8,
+                        textAlign: "center",
+                        color: theme.colors.inkFaint,
+                      }}
+                    >
+                      {name[0]}
+                    </Text>
+                  ))}
+                </View>
               <Heatmap
                 cells={heatCells}
-                cellSize={12}
-                gap={4}
+                cellSize={HEAT_CELL}
+                gap={HEAT_GAP}
                 colorForIntensity={(intensity) =>
                   intensity === 0
                     ? theme.colors.surfaceAlt
@@ -256,6 +277,7 @@ export default function StatsScreen() {
                         : theme.colors.accent
                 }
               />
+              </View>
             </Section>
 
             {/* 6 — честный вывод: где план перестаёт выполняться. */}

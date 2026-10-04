@@ -12,8 +12,11 @@ export function Toggle({ value, onValueChange }: Props) {
     <Switch
       value={value}
       onValueChange={onValueChange}
-      trackColor={{ false: theme.colors.surfaceAlt, true: theme.colors.accent }}
-      thumbColor={theme.colors.onAccent}
+      // Выключенный трек НЕ surfaceAlt: на карточках того же тона переключатель
+      // пропадал целиком, оставался висеть один белый кружок (видно на живом
+      // прогоне). Ползунок тоже фиксированно светлый, а не onAccent.
+      trackColor={{ false: theme.colors.border, true: theme.colors.accent }}
+      thumbColor="#FFFFFF"
     />
   );
 }

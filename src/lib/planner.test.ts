@@ -300,3 +300,46 @@ test("сборка недели на реалистичной библиотек
   assert.equal(result.slots.filter((s) => s.kind === "open").length, 0);
   assert.ok(elapsed < 1000, "сборка заняла " + elapsed + " мс");
 });
+
+test("неделя не схлопывается в два блюда: однообразие съеденного тоже стоит денег", () => {
+  // Регрессия с живого прогона на эмуляторе: без члена eatRepeat честным
+  // оптимумом было "сварить два раза и доедать семь дней" — формально
+  // дёшево по покупкам, как продукт — неприемлемо.
+  const recipes = [
+    recipe("chicken", { tag: "chicken", activeMinutes: 35, lines: [{ name: "chicken", qty: 600, unit: "g" }, { name: "potato", qty: 500, unit: "g" }] }),
+    recipe("curry", { tag: "beans", activeMinutes: 30, lines: [{ name: "chickpeas", qty: 400, unit: "g" }, { name: "rice", qty: 150, unit: "g" }] }),
+    recipe("pasta", { tag: "pasta", activeMinutes: 25, lines: [{ name: "pasta", qty: 200, unit: "g" }, { name: "cream", qty: 200, unit: "ml" }] }),
+    recipe("fish", { tag: "fish", activeMinutes: 25, keepsDays: 1, lines: [{ name: "salmon", qty: 300, unit: "g" }, { name: "rice", qty: 150, unit: "g" }] }),
+    recipe("couscous", { tag: "veggie", activeMinutes: 20, lines: [{ name: "couscous", qty: 180, unit: "g" }, { name: "feta", qty: 150, unit: "g" }] }),
+  ];
+  const catalog = catalogOf(
+    ["chicken", "potato", "chickpeas", "rice", "pasta", "cream", "salmon", "couscous", "feta"].map((n) =>
+      ingredient(n, { shelfLifeDays: 5 })
+    )
+  );
+  const config = configFor(7);
+  for (const seed of [1, 2, 3]) {
+    const result = buildPlan(recipes, catalog, config, seed);
+    const cooked = new Set(result.slots.filter((s) => s.kind === "cook").map((s) => s.recipeId));
+    assert.ok(cooked.size >= 3, `сид ${seed}: всего ${cooked.size} разных блюд на неделю`);
+  }
+});
+
+test("одна готовка кормит ограниченное число дней — кастрюля не бездонная", () => {
+  const recipes = [recipe("a", { keepsDays: 7 })];
+  const config = configFor(7, { leftoverMaxAge: 7, minRepeatGap: 1 });
+  const result = buildPlan(recipes, catalog1(), config, 4);
+  const fed = new Map<string, number>();
+  for (const slot of result.slots) {
+    if (slot.kind !== "leftover") continue;
+    const key = slot.sourceDay + "-" + slot.sourceMeal;
+    fed.set(key, (fed.get(key) ?? 0) + 1);
+  }
+  for (const [key, count] of fed) {
+    assert.ok(count <= 2, `готовка ${key} кормит ${count} дополнительных слотов`);
+  }
+});
+
+function catalog1() {
+  return catalogOf([ingredient("rice")]);
+}

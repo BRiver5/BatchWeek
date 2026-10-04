@@ -17,6 +17,12 @@ export type AppSettings = {
   planLunches: boolean;
   /** Дни недели, которые вообще нужно закрывать (0 — понедельник). */
   activeDays: number[];
+  /**
+   * 1..5 — чем выше, тем сильнее план тянет к разным блюдам; чем ниже, тем
+   * сильнее к короткому списку покупок. Это настоящий компромисс движка, а не
+   * косметика: на минимуме честный оптимум — сварить дважды и доедать неделю.
+   */
+  varietyBias: number;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -29,6 +35,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   tripCount: 2,
   planLunches: false,
   activeDays: [0, 1, 2, 3, 4, 5, 6],
+  varietyBias: 3,
 };
 
 function parseNumber(value: string | undefined, fallback: number): number {
@@ -53,6 +60,7 @@ export async function loadSettings(): Promise<AppSettings> {
           .map(Number)
           .filter((n) => n >= 0 && n <= 6)
       : DEFAULT_SETTINGS.activeDays,
+    varietyBias: parseNumber(raw.varietyBias, DEFAULT_SETTINGS.varietyBias),
   };
 }
 
@@ -66,6 +74,7 @@ export async function persistSettings(settings: AppSettings): Promise<void> {
   await saveSettingRaw("tripCount", String(settings.tripCount));
   await saveSettingRaw("planLunches", settings.planLunches ? "1" : "0");
   await saveSettingRaw("activeDays", settings.activeDays.join(","));
+  await saveSettingRaw("varietyBias", String(settings.varietyBias));
 }
 
 /** Слоты недели, которые нужно закрыть, из настроек пользователя. */
@@ -79,6 +88,11 @@ export function slotsFromSettings(settings: AppSettings): SlotKey[] {
 }
 
 export function configFromSettings(settings: AppSettings): PlanConfig {
+  // Ползунок Variety перераспределяет вес между "разные блюда" и "короткий
+  // список покупок" — середина (3) оставляет веса такими, как в DEFAULT_WEIGHTS.
+  const bias = Math.min(5, Math.max(1, settings.varietyBias));
+  const towardsVariety = bias / 3;
+  const towardsShortList = (6 - bias) / 3;
   return {
     slots: slotsFromSettings(settings),
     servingsPerMeal: settings.servingsPerMeal,
@@ -87,6 +101,11 @@ export function configFromSettings(settings: AppSettings): PlanConfig {
     allowBatch: settings.allowBatch,
     minRepeatGap: settings.minRepeatGap,
     leftoverMaxAge: settings.leftoverMaxAge,
-    weights: DEFAULT_WEIGHTS,
+    weights: {
+      ...DEFAULT_WEIGHTS,
+      ingredient: DEFAULT_WEIGHTS.ingredient * towardsShortList,
+      eatRepeat: DEFAULT_WEIGHTS.eatRepeat * towardsVariety,
+      sameRecipeAgain: DEFAULT_WEIGHTS.sameRecipeAgain * towardsVariety,
+    },
   };
 }

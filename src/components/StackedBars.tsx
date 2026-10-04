@@ -18,9 +18,20 @@ export function StackedBars({ data, height = 128 }: { data: StackedDatum[]; heig
   const max = Math.max(1, ...data.map((d) => d.segments.reduce((sum, s) => sum + s.value, 0)));
 
   return (
-    <View style={{ flexDirection: "row", alignItems: "flex-end", gap: theme.spacing.sm, height }}>
+    // maxWidth на колонку: при одной-двух неделях flex:1 растягивал столбец во
+    // всю ширину карточки, и график читался как сплошная заливка, а не как бар
+    // (видно на живом прогоне с единственной заполненной неделей).
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "flex-end",
+        justifyContent: data.length < 4 ? "flex-start" : "space-between",
+        gap: theme.spacing.sm,
+        height,
+      }}
+    >
       {data.map((datum, index) => (
-        <View key={datum.label + index} style={{ flex: 1, alignItems: "center" }}>
+        <View key={datum.label + index} style={{ flex: 1, maxWidth: 52, alignItems: "center" }}>
           <View style={{ width: "100%", height: height - 20, justifyContent: "flex-end", gap: 2 }}>
             {datum.segments
               .filter((segment) => segment.value > 0)
